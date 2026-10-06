@@ -13,7 +13,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("candidato");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -23,12 +22,14 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError(null);
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedName = name.trim();
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         data: {
-          name,
+          name: normalizedName,
           role,
         },
       },
@@ -37,14 +38,35 @@ export default function RegisterPage() {
     if (error) {
       setError(error.message);
       setIsLoading(false);
-    } else if (!data.session) {
-      setSuccess("Conta criada. Abra o link enviado para o seu e-mail para confirmar o cadastro.");
-      setIsLoading(false);
-    } else {
-      await supabase.from("profiles").upsert({ id: data.user!.id, name: name.trim(), role }, { onConflict: "id" });
-      router.push(role === "empresa" ? "/cadastro-empresa" : "/cadastro");
-      router.refresh();
+      return;
     }
+
+    let authenticatedUser = data.session?.user ?? null;
+    if (!authenticatedUser) {
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+      if (loginError || !loginData.user) {
+        setError("O cadastro foi criado, mas o Supabase ainda exige confirmação por e-mail. Desative 'Confirm email' em Authentication > Providers > Email para liberar o login automático.");
+        setIsLoading(false);
+        return;
+      }
+      authenticatedUser = loginData.user;
+    }
+
+    const { error: profileError } = await supabase.from("profiles").upsert(
+      { id: authenticatedUser.id, name: normalizedName, role },
+      { onConflict: "id" },
+    );
+    if (profileError) {
+      setError("A conta foi criada, mas não foi possível preparar o perfil. Tente entrar novamente.");
+      setIsLoading(false);
+      return;
+    }
+
+    router.push(role === "empresa" ? "/cadastro-empresa" : "/cadastro");
+    router.refresh();
   };
 
   return (
@@ -66,10 +88,7 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
-          {success && (
-            <div role="status" className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">{success}</div>
-          )}
-          
+
           <div className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-zinc-300" htmlFor="name">
@@ -95,7 +114,7 @@ export default function RegisterPage() {
                 id="email"
                 type="email"
                 required
-                minLength={8}
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors"
@@ -111,6 +130,8 @@ export default function RegisterPage() {
                 id="password"
                 type="password"
                 required
+                minLength={8}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-colors"
