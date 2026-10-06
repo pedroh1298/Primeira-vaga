@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Building2, ArrowLeft, Globe, MapPin, Calendar, BriefcaseBusiness } from "lucide-react";
+import { Building2, ArrowLeft, Globe, MapPin, Users, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { CompanyFollowButton } from "@/components/companies/CompanyFollowButton";
@@ -38,6 +38,7 @@ export default async function EmpresaDetailsPage({ params }: EmpresaPageProps) {
     .from('jobs')
     .select('id, title, location, type, created_at')
     .eq('company_id', company.id)
+    .eq('is_active', true)
     .order('created_at', { ascending: false });
 
   return (
@@ -60,8 +61,10 @@ export default async function EmpresaDetailsPage({ params }: EmpresaPageProps) {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-zinc-400">
               <span className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-purple-400" />
-                Empresa Parceira
+                {company.industry || 'Empresa parceira'}
               </span>
+              {company.company_size && <span className="flex items-center gap-2"><Users className="h-4 w-4 text-purple-400" />{company.company_size} colaboradores</span>}
+              {(company.city || company.state) && <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-purple-400" />{[company.city, company.state].filter(Boolean).join('/')}</span>}
               {company.website && (
                 <a href={company.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-purple-300">
                   <Globe className="h-4 w-4 text-purple-400" />
@@ -81,6 +84,10 @@ export default async function EmpresaDetailsPage({ params }: EmpresaPageProps) {
               {company.description ? company.description : "Esta empresa ainda não adicionou uma descrição detalhada mas está recrutando novos talentos!"}
             </div>
           </section>
+
+          {company.culture && <section className="bg-zinc-900/40 p-6 rounded-2xl border border-white/5"><h2 className="text-2xl font-bold text-white mb-4">Cultura e ambiente</h2><p className="whitespace-pre-wrap text-zinc-300 leading-relaxed">{company.culture}</p></section>}
+
+          {company.benefits?.length > 0 && <section><h2 className="text-2xl font-bold text-white mb-4">Benefícios</h2><div className="flex flex-wrap gap-2">{company.benefits.map((benefit: string) => <span key={benefit} className="rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1.5 text-sm text-purple-200">{benefit}</span>)}</div></section>}
 
           <section>
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
@@ -119,7 +126,7 @@ export default async function EmpresaDetailsPage({ params }: EmpresaPageProps) {
                 </>
               )}
               <Button className="w-full" variant="outline" asChild>
-                <Link href={`/mensagens?contact=${company.user_id}`}>Falar com o Recrutador</Link>
+                <Link href={userData.user ? `/mensagens?contact=${company.user_id}` : `/login?next=${encodeURIComponent(`/mensagens?contact=${company.user_id}`)}`}>Falar com o Recrutador</Link>
               </Button>
             </div>
           </div>

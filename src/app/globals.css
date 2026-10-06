@@ -42,3 +42,9 @@
   .glass-card { @apply bg-white/[0.02] backdrop-blur-lg border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]; }
   .glow-purple { box-shadow: 0 0 20px -5px theme('colors.purple.500'); }
 }
+
+@layer components {
+  .input {
+    @apply w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-white placeholder:text-zinc-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500;
+  }
+}

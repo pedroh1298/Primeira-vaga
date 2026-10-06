@@ -16,6 +16,16 @@ export interface Job {
   requirements: string[];
   tags: Tag[];
   createdAt: string;
+  area?: string;
+  employmentType?: string;
+  salaryRange?: string;
+  educationLevel?: string;
+  requiredSkills?: string[];
+  optionalSkills?: string[];
+  workSchedule?: string;
+  slots?: number;
+  applicationDeadline?: string;
+  isActive?: boolean;
 }
 
 export const TAGS: Tag[] = [

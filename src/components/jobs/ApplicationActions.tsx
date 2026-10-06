@@ -38,7 +38,7 @@ export function ApplicationActions({ applicationId, candidateId, initialStatus }
       <select id={`status-${applicationId}`} value={status} onChange={(event) => void changeStatus(event.target.value)} disabled={isSaving} className="h-11 rounded-lg border border-white/10 bg-zinc-950 px-3 text-sm text-white">
         {options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
-      <Button variant="outline" asChild><Link href={`/mensagens?contact=${candidateId}`}><MessageCircle className="mr-2 h-4 w-4" />Conversar</Link></Button>
+      {candidateId ? <Button variant="outline" asChild><Link href={`/mensagens?contact=${candidateId}`}><MessageCircle className="mr-2 h-4 w-4" />Conversar</Link></Button> : <Button variant="outline" disabled><MessageCircle className="mr-2 h-4 w-4" />Perfil indisponível</Button>}
       {error && <p className="text-xs text-red-300">{error}</p>}
     </div>
   );

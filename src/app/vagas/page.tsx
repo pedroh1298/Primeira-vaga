@@ -20,9 +20,10 @@ export default function VagasPage() {
       const { data, error } = await supabase
         .from('jobs')
         .select(`
-          id, title, description, location, type, requirements, created_at,
+          id, title, description, location, type, requirements, created_at, area, employment_type, salary_range, education_level, required_skills, optional_skills, work_schedule, slots, application_deadline, is_active,
           companies ( name )
         `)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
         
       if (data && !error) {
@@ -35,7 +36,10 @@ export default function VagasPage() {
           description: j.description,
           requirements: j.requirements || [],
           tags: [], // Could map tags if implemented
-          createdAt: j.created_at
+          createdAt: j.created_at,
+          area: j.area, employmentType: j.employment_type, salaryRange: j.salary_range,
+          educationLevel: j.education_level, requiredSkills: j.required_skills || [], optionalSkills: j.optional_skills || [],
+          workSchedule: j.work_schedule, slots: j.slots, applicationDeadline: j.application_deadline, isActive: j.is_active
         }));
         // Dados de demonstração só aparecem quando ainda não há vagas publicadas.
         setJobs(formattedJobs.length > 0 ? formattedJobs : MOCK_JOBS);

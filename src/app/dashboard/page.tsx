@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { FileText, Bookmark, Settings, CheckCircle2, ChevronRight, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +11,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (!user) redirect('/login?next=/dashboard');
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
@@ -51,6 +52,9 @@ export default async function DashboardPage() {
             <Button variant="secondary" asChild>
               <Link href="/mensagens">Mensagens</Link>
             </Button>
+            <Button variant="secondary" asChild>
+              <Link href="/candidatos">Analisar candidatos</Link>
+            </Button>
           </div>
         </div>
 
@@ -84,11 +88,21 @@ export default async function DashboardPage() {
   }
 
   // Candidato Dashboard
-  const completeness = (profile?.bio ? 33 : 0) + (profile?.area ? 33 : 0) + (profile?.resume_url ? 34 : 0);
+  const profileChecks = [
+    { label: 'Objetivo e área', complete: Boolean(profile?.headline && profile?.area) },
+    { label: 'Apresentação profissional', complete: Boolean(profile?.bio) },
+    { label: 'Cidade e estado', complete: Boolean(profile?.city && profile?.state) },
+    { label: 'Formação acadêmica', complete: Boolean(profile?.education_level && profile?.institution) },
+    { label: 'Habilidades', complete: Boolean(profile?.skills?.length) },
+    { label: 'Disponibilidade', complete: Boolean(profile?.availability?.length) },
+    { label: 'Preferência de trabalho', complete: Boolean(profile?.preferred_work_models?.length) },
+    { label: 'Currículo em PDF', complete: Boolean(profile?.resume_url) },
+  ];
+  const completeness = Math.round((profileChecks.filter((item) => item.complete).length / profileChecks.length) * 100);
 
   const { data: applications } = await supabase
     .from('applications')
-    .select('id, status, created_at, jobs(id, title, companies(name))')
+    .select('id, status, created_at, compatibility_score, jobs(id, title, companies(name))')
     .eq('applicant_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -139,15 +153,7 @@ export default async function DashboardPage() {
             </div>
 
             <ul className="space-y-3 mb-6">
-              <li className="flex items-center gap-2 text-sm text-zinc-300">
-                <CheckCircle2 className={`h-4 w-4 ${profile?.area ? 'text-green-500' : 'text-zinc-600'}`} /> Interesses
-              </li>
-              <li className="flex items-center gap-2 text-sm text-zinc-300">
-                <CheckCircle2 className={`h-4 w-4 ${profile?.bio ? 'text-green-500' : 'text-zinc-600'}`} /> Biografia
-              </li>
-              <li className="flex items-center gap-2 text-sm text-zinc-300">
-                <CheckCircle2 className={`h-4 w-4 ${profile?.resume_url ? 'text-green-500' : 'text-zinc-600'}`} /> Currículo em PDF
-              </li>
+              {profileChecks.map((item) => <li key={item.label} className="flex items-center gap-2 text-sm text-zinc-300"><CheckCircle2 className={`h-4 w-4 ${item.complete ? 'text-green-500' : 'text-zinc-600'}`} />{item.label}</li>)}
             </ul>
 
             {completeness < 100 && (
@@ -189,6 +195,7 @@ export default async function DashboardPage() {
                     <div className="text-right flex items-center gap-4">
                       <div className="hidden sm:block">
                         <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded inline-block mb-1 capitalize">{app.status.replace('_', ' ')}</span>
+                        <p className="text-xs text-purple-300">Compatibilidade: {app.compatibility_score ?? 0}%</p>
                         <p className="text-xs text-zinc-500">Aplicado em {new Date(app.created_at).toLocaleDateString('pt-BR')}</p>
                       </div>
                       <ChevronRight className="h-5 w-5 text-zinc-600" />

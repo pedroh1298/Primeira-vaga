@@ -29,11 +29,11 @@ export default async function JobDetailsPage({ params }: JobPageProps) {
 
   // Try fetching from supbase
   let job: any = null;
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('jobs')
     .select(`
-      id, title, description, location, type, requirements, created_at, company_id,
-      companies ( id, name )
+      id, title, description, location, type, requirements, created_at, company_id, area, employment_type, salary_range, education_level, required_skills, optional_skills, work_schedule, slots, application_deadline, is_active,
+      companies ( id, name, description )
     `)
     .eq('id', p.id)
     .single();
@@ -51,7 +51,11 @@ export default async function JobDetailsPage({ params }: JobPageProps) {
       description: data.description,
       requirements: data.requirements || [],
       tags: [],
-      createdAt: data.created_at
+      createdAt: data.created_at,
+      area: data.area, employmentType: data.employment_type, salaryRange: data.salary_range,
+      educationLevel: data.education_level, requiredSkills: data.required_skills || [], optionalSkills: data.optional_skills || [],
+      workSchedule: data.work_schedule, slots: data.slots, applicationDeadline: data.application_deadline, isActive: data.is_active,
+      companyDescription: (Array.isArray(data.companies) ? data.companies[0]?.description : (data.companies as any)?.description)
     };
   }
 
@@ -103,6 +107,9 @@ export default async function JobDetailsPage({ params }: JobPageProps) {
                   Publicado em {date}
                 </span>
               </div>
+              <div className="flex flex-wrap gap-2">{job.employmentType && <Badge variant="default">{String(job.employmentType).replaceAll('_', ' ')}</Badge>}{job.salaryRange && <Badge variant="secondary">{job.salaryRange}</Badge>}{job.workSchedule && <Badge variant="secondary">{job.workSchedule}</Badge>}{job.slots && <Badge variant="secondary">{job.slots} {job.slots === 1 ? 'vaga' : 'vagas'}</Badge>}</div>
+              {job.applicationDeadline && <p className="text-sm text-zinc-400">Candidaturas até {new Date(`${job.applicationDeadline}T12:00:00`).toLocaleDateString('pt-BR')}</p>}
+              {job.isActive === false && <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">Esta vaga não está mais recebendo candidaturas.</p>}
             </div>
 
             {userRole !== 'empresa' && (
@@ -138,12 +145,13 @@ export default async function JobDetailsPage({ params }: JobPageProps) {
               ))}
             </ul>
           </section>
+          {job.requiredSkills?.length > 0 && <section><h2 className="text-2xl font-bold text-white mb-4">Habilidades para a vaga</h2><div className="flex flex-wrap gap-2">{job.requiredSkills.map((skill: string) => <Badge key={skill}>{skill}</Badge>)}{job.optionalSkills?.map((skill: string) => <Badge key={skill} variant="secondary">{skill} · desejável</Badge>)}</div></section>}
         </div>
 
         <div className="space-y-6">
           <div className="bg-zinc-900 border border-white/5 rounded-xl p-6">
             <h3 className="font-bold text-white mb-4">Sobre a empresa</h3>
-            <p className="text-sm text-zinc-400 mb-4">A {job.companyName} é uma empresa incrível buscando novos talentos na plataforma.</p>
+            <p className="text-sm text-zinc-400 mb-4">{job.companyDescription || `A ${job.companyName} está buscando novos talentos na plataforma.`}</p>
             {job.companyId && (
               <Button variant="outline" className="w-full" asChild>
                 <Link href={`/empresas/${job.companyId}`}>Ver perfil da empresa</Link>

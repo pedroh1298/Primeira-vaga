@@ -53,13 +53,18 @@ export function JobActionsCandidate({ jobId, userId }: { jobId: string; userId?:
     if (requireLogin() || hasApplied) return;
     setPendingAction("apply");
 
-    const { data: profile, error: profileError } = await supabase.from("profiles").select("role, resume_url").eq("id", userId!).single();
+    const [{ data: profile, error: profileError }, { data: vacancy, error: vacancyError }] = await Promise.all([
+      supabase.from("profiles").select("role, resume_url, area, headline, bio, city, state, education_level, institution, availability, preferred_work_models, skills").eq("id", userId!).single(),
+      supabase.from("jobs").select("is_active, application_deadline").eq("id", jobId).single(),
+    ]);
     if (profileError) {
       setFeedback({ type: "error", text: "Não foi possível conferir seu perfil. Tente novamente." });
+    } else if (vacancyError || !vacancy?.is_active || (vacancy.application_deadline && new Date(`${vacancy.application_deadline}T23:59:59`) < new Date())) {
+      setFeedback({ type: "error", text: "Esta vaga não está mais recebendo candidaturas." });
     } else if (profile?.role !== "candidato") {
       setFeedback({ type: "error", text: "Apenas perfis de candidato podem se candidatar." });
-    } else if (!profile.resume_url) {
-      setFeedback({ type: "error", text: "Adicione seu currículo antes de enviar a candidatura." });
+    } else if (!profile.resume_url || !profile.area || !profile.headline || !profile.bio || !profile.city || !profile.state || !profile.education_level || !profile.institution || !profile.availability?.length || !profile.preferred_work_models?.length || (profile.skills?.length ?? 0) < 3) {
+      setFeedback({ type: "error", text: "Complete seu perfil profissional e adicione o currículo antes de se candidatar." });
       router.push("/cadastro");
     } else {
       const { error } = await supabase.from("applications").insert({ job_id: jobId, applicant_id: userId, status: "em_analise" });

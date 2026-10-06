@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { FileText, User } from "lucide-react";
+import { redirect } from "next/navigation";
+import { User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { ApplicationActions } from "@/components/jobs/ApplicationActions";
+import { CandidatesBoard } from "@/components/jobs/CandidatesBoard";
 
 export default async function CandidatosPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (!user) redirect('/login?next=/candidatos');
 
   // Ensure they are an empresa
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -39,7 +40,7 @@ export default async function CandidatosPage() {
   const { data: companyApplications } = myJobIds.length > 0
     ? await supabase
         .from('applications')
-        .select('id, status, created_at, jobs(id, title), profiles(id, name, bio, area, resume_url)')
+        .select('id, status, created_at, compatibility_score, compatibility_breakdown, jobs(id, title), profiles(id, name, headline, bio, area, city, state, education_level, course, institution, skills, languages, availability, preferred_work_models, experience_summary, linkedin_url, portfolio_url, resume_url)')
         .in('job_id', myJobIds)
         .order('created_at', { ascending: false })
     : { data: [] };
@@ -54,55 +55,12 @@ export default async function CandidatosPage() {
         <p className="text-zinc-400">Analise os candidatos que aplicaram para suas vagas publicadas.</p>
       </div>
 
-      <div className="space-y-6">
-        {applicationsList.length === 0 ? (
+      {applicationsList.length === 0 ? (
           <div className="text-center bg-zinc-900 border border-white/5 rounded-xl p-12">
             <h3 className="text-xl font-bold text-white mb-2">Nenhum candidato ainda</h3>
             <p className="text-zinc-400">Assim que os candidatos aplicarem nas suas vagas, os currículos aparecerão aqui.</p>
           </div>
-        ) : (
-          applicationsList.map((app: any) => (
-            <div key={app.id} className="p-6 rounded-xl bg-zinc-900 border border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-full bg-purple-900 flex items-center justify-center font-bold text-lg text-white">
-                    {app.profiles?.name?.charAt(0) || 'C'}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white text-lg">{app.profiles?.name}</h3>
-                    <p className="text-zinc-400 text-sm mb-2">Candidatou-se a: <Link href={`/vagas/${app.jobs?.id}`} className="text-purple-400 hover:underline">{app.jobs?.title}</Link></p>
-                    <p className="text-zinc-500 text-sm mt-2">{app.profiles?.bio || "Sem biografia fornecida."}</p>
-                    
-                    <div className="mt-3 flex gap-2">
-                      <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-1 rounded">
-                        Área: {app.profiles?.area || 'Não declarada'}
-                      </span>
-                      <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded uppercase">
-                        {app.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 md:w-auto w-full md:border-l md:border-white/5 md:pl-6 md:ml-4">
-                {app.profiles?.resume_url ? (
-                  <Button variant="outline" className="w-full sm:w-auto" asChild>
-                    <a href={app.profiles.resume_url} target="_blank" rel="noopener noreferrer">
-                      <FileText className="h-4 w-4 mr-2" /> PDF Original
-                    </a>
-                  </Button>
-                ) : (
-                  <Button variant="outline" className="w-full sm:w-auto opacity-50 cursor-not-allowed" disabled>
-                    Sem Anexo
-                  </Button>
-                )}
-                <ApplicationActions applicationId={app.id} candidateId={app.profiles?.id} initialStatus={app.status} />
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+        ) : <CandidatesBoard applications={applicationsList as any} />}
     </div>
   );
 }

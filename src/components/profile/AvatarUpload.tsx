@@ -54,7 +54,8 @@ export function AvatarUpload({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="relative group cursor-pointer inline-block text-center" onClick={() => fileInputRef.current?.click()}>
+    <div className="relative inline-block text-center">
+      <button type="button" className="group block cursor-pointer" onClick={() => fileInputRef.current?.click()} disabled={isUploading} aria-label="Alterar foto do perfil">
       <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full overflow-hidden bg-zinc-800 border-4 border-purple-500/30 group-hover:border-purple-500 transition-colors flex justify-center items-center relative">
         {url ? (
           <img src={url} alt="Avatar" className="w-full h-full object-cover" />
@@ -65,6 +66,7 @@ export function AvatarUpload({ userId }: { userId: string }) {
            {isUploading ? <Loader2 className="animate-spin text-white h-6 w-6" /> : <Camera className="text-white h-6 w-6" />}
         </div>
       </div>
+      </button>
       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleUpload} />
       {error && <p className="mt-2 max-w-40 text-xs text-red-300">{error}</p>}
     </div>

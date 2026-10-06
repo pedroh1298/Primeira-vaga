@@ -107,7 +107,7 @@ https://primeira-vaga.vercel.app/
 # Desenvolvimento local
 
 1. Copie `.env.example` para `.env.local` e informe a URL e a chave pública do seu projeto Supabase.
-2. Execute a migração em `supabase/migrations/202610060001_company_follows_and_integrity.sql` no SQL Editor do Supabase.
+2. Execute, em ordem, todos os arquivos de `supabase/migrations/` no SQL Editor do Supabase. A segunda migração adiciona os dados profissionais, os campos de recrutamento e a pontuação de compatibilidade.
 3. Instale e inicie o projeto:
 
 ```bash
